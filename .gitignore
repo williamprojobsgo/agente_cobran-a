@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.ipynb_checkpoints/
+saidas/
+logs/
+data/raw/
+data/tmp/
+*.log
+*.tmp
+# binários grandes (use LFS se necessário)
+*.pbix
+*.xlsx
+*.zip

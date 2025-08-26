@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Messenger</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Botão do messenger -->
+<button class="chat-button" onclick="toggleChat()">
+  <img src="https://cdn-icons-png.flaticon.com/512/2462/2462719.png" alt="Chat Icon">
+  <div class="notification" id="notification">1</div>
+</button>
+
+<!-- Pop-up do chat -->
+<div class="chat-popup" id="chatPopup">
+  <div class="chat-header">Atendimento</div>
+  <div class="chat-body">
+    <p><strong>Bot:</strong> Olá, como posso ajudar!?</p>
+  </div>
+  <div class="chat-footer">
+    <input type="text" id="userMessage" placeholder="Digite sua solicitação...">
+    <button class="send-btn" onclick="sendMessage()">Enviar</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
