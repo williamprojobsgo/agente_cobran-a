@@ -73,7 +73,8 @@ def main(page: ft.Page):
         "df_agrupado": None, 
         "pasta": "repositorio debitos", 
         "robo_rodando": False,
-        "driver": None
+        "driver": None,
+        "selecionados": set()
     }
     
     # --- FUNCOES DE DADOS ---
@@ -171,14 +172,46 @@ def main(page: ft.Page):
             status_text.value = f"Erro: {str(ex)}"
         page.update()
 
+    def atualizar_contador_selecionados():
+        total = len(state["selecionados"])
+        selecionados_text.value = f"{total} cliente(s) selecionado(s)" if total > 0 else "Nenhum selecionado"
+
+    def on_checkbox_change(e, nome):
+        if e.control.value:
+            state["selecionados"].add(nome)
+        else:
+            state["selecionados"].discard(nome)
+        atualizar_contador_selecionados()
+        page.update()
+
+    def selecionar_todos(e):
+        if state["df_agrupado"] is None:
+            return
+        state["selecionados"] = set(state["df_agrupado"]["cliente_nome"].tolist())
+        for control in lista_clientes.controls:
+            cb = control.content.controls[0]
+            cb.value = True
+        atualizar_contador_selecionados()
+        page.update()
+
+    def limpar_selecao(e):
+        state["selecionados"].clear()
+        for control in lista_clientes.controls:
+            cb = control.content.controls[0]
+            cb.value = False
+        atualizar_contador_selecionados()
+        page.update()
+
     def render_tabela(df):
         lista_clientes.controls.clear()
         for _, row in df.iterrows():
             nome = row["cliente_nome"]
             saldo = row["saldo_num"]
             qtd = row["qtd"]
+            cb = ft.Checkbox(value=nome in state["selecionados"], on_change=lambda e, n=nome: on_checkbox_change(e, n))
             item = ft.Container(
                 content=ft.Row([
+                    cb,
                     ft.Text(nome, expand=True, size=14, weight="bold"),
                     ft.Text(f"{int(qtd)} notas", width=80, size=13, color="grey"),
                     ft.Text(f"R$ {saldo:,.2f}", width=160, weight="bold", color="blue", text_align="right", size=15),
@@ -190,6 +223,7 @@ def main(page: ft.Page):
                 border_radius=8
             )
             lista_clientes.controls.append(item)
+        atualizar_contador_selecionados()
         page.update()
 
     def buscar_cliente(e):
@@ -243,8 +277,9 @@ def main(page: ft.Page):
     def processar_clientes_robo():
         driver = None
         try:
-            if state["df_agrupado"] is None or state["df_agrupado"].empty:
-                monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=14))
+            clientes_para_enviar = [n for n in state["selecionados"]] if state["selecionados"] else []
+            if not clientes_para_enviar:
+                monitor_clientes_status.controls.append(ft.Text("Nenhum cliente selecionado. Selecione os clientes na aba CLIENTES.", color="red", size=14))
                 return
 
             monitor_clientes_status.controls.clear()
@@ -263,10 +298,11 @@ def main(page: ft.Page):
             page.update()
 
             df = state["df_dados"]
+            df_agrup = state["df_agrupado"]
             enviados = 0
             erros = 0
 
-            for _, row in state["df_agrupado"].iterrows():
+            for _, row in df_agrup[df_agrup["cliente_nome"].isin(clientes_para_enviar)].iterrows():
                 if not state["robo_rodando"]: break
                 cliente_nome = row["cliente_nome"]
                 saldo = row["saldo_num"]
@@ -362,10 +398,14 @@ def main(page: ft.Page):
         visible=False, width=480, expand=True, bgcolor="#F9F9F9", padding=20, border=ft.border.all(1, "#DDDDDD"), border_radius=10
     )
 
+    selecionados_text = ft.Text("Nenhum selecionado", size=13, color="grey", italic=True)
+
     # Botoes com dimensoes proporcionais
     iniciar_robo_btn = ft.ElevatedButton("INICIAR ROBO", bgcolor="blue", color="white", on_click=iniciar_robo, height=42, width=200)
     atualizar_btn = ft.ElevatedButton("ATUALIZAR", on_click=carregar_dados, height=42, width=160)
     parar_btn = ft.ElevatedButton("PARAR", bgcolor="red", color="white", on_click=parar_robo, height=42, width=130)
+    selecionar_todos_btn = ft.TextButton("Selecionar Todos", on_click=selecionar_todos)
+    limpar_selecao_btn = ft.TextButton("Limpar Selecao", on_click=limpar_selecao)
 
     # Aba Clientes
     aba_clientes = ft.Row([
@@ -373,7 +413,7 @@ def main(page: ft.Page):
             content=ft.Column([
                 ft.Row([status_text, total_text], alignment="spaceBetween"),
                 ft.Row([atualizar_btn, iniciar_robo_btn, parar_btn], spacing=15),
-                ft.Row([busca_field], spacing=10),
+                ft.Row([busca_field, selecionar_todos_btn, limpar_selecao_btn, selecionados_text], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 ft.Divider(height=10),
                 ft.Container(content=lista_clientes, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=10, bgcolor="white", padding=10),
             ], expand=True, spacing=8),
