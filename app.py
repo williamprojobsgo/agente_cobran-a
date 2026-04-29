@@ -33,8 +33,10 @@ def iniciar_driver():
     return driver
 
 def formatar_numero(numero):
-    numero = str(numero).replace("(", "").replace(")", "").replace("-", "").replace(" ", "")
-    if not numero.startswith("55"):
+    numero = str(numero).replace("(", "").replace(")", "").replace("-", "").replace(" ", "").replace(".", "")
+    if len(numero) <= 11:
+        numero = "55" + numero
+    elif not numero.startswith("55"):
         numero = "55" + numero
     return numero
 
