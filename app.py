@@ -93,6 +93,13 @@ def main(page: ft.Page):
                     if "valor" in c_lower and "saldo" not in c_lower: idx_val = i
                     if "tel" in c_lower or "celular" in c_lower: idx_tel = i
 
+                max_idx = len(cols) - 1
+                for nome_col, idx in [("tel", idx_tel), ("cliente", idx_cli), ("vencimento", idx_venc), ("valor", idx_val), ("saldo", idx_saldo)]:
+                    if idx > max_idx:
+                        status_text.value = f"Erro: coluna '{nome_col}' nao encontrada (indice {idx} > {max_idx})"
+                        page.update()
+                        return
+
                 df["cliente_nome"] = df.iloc[:, idx_cli].astype(str).str.strip()
                 df["tel_limpo"] = df.iloc[:, idx_tel].astype(str).str.replace(".0", "", regex=False)
                 df["venc_limpo"] = df.iloc[:, idx_venc].apply(converter_data_agressivo)
@@ -142,7 +149,7 @@ def main(page: ft.Page):
         if not termo:
             render_tabela(state["df_agrupado"])
             return
-        df_filtrado = state["df_agrupado"][state["df_agrupado"]["cliente_nome"].str.upper().str.contains(termo, na=False)]
+        df_filtrado = state["df_agrupado"][state["df_agrupado"]["cliente_nome"].str.upper().str.contains(termo, na=False, regex=False)]
         render_tabela(df_filtrado)
 
     def ver_detalhes(nome):
