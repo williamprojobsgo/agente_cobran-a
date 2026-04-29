@@ -236,8 +236,8 @@ def main(page: ft.Page):
             ], alignment="spaceBetween"),
             ft.Divider(height=10),
             detalhes_col
-        ]),
-        visible=False, width=480, bgcolor="#F9F9F9", padding=20, border=ft.border.all(1, "#DDDDDD"), border_radius=10
+        ], expand=True),
+        visible=False, width=480, expand=True, bgcolor="#F9F9F9", padding=20, border=ft.border.all(1, "#DDDDDD"), border_radius=10
     )
 
     # Botoes com dimensoes proporcionais
@@ -278,7 +278,7 @@ def main(page: ft.Page):
                 ft.Divider(height=10),
                 ft.Container(content=aba_clientes, expand=True),
                 ft.Container(content=aba_monitoramento, expand=True)
-            ], spacing=8),
+            ], spacing=8, expand=True),
             expand=True,
             padding=15
         )
