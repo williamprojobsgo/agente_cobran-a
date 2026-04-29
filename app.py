@@ -13,7 +13,7 @@ import threading
 def main(page: ft.Page):
     page.title = "Robo de Cobranca - Versao Final"
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.padding = 20
+    page.padding = 15
     page.window_width = 1600
     page.window_height = 1000
     page.expand = True
@@ -121,15 +121,15 @@ def main(page: ft.Page):
             qtd = row["qtd"]
             item = ft.Container(
                 content=ft.Row([
-                    ft.Text(nome, expand=True, size=16, weight="bold"),
-                    ft.Text(f"{int(qtd)} notas", width=100, size=14, color="grey"),
-                    ft.Text(f"R$ {saldo:,.2f}", width=180, weight="bold", color="blue", text_align="right", size=18),
+                    ft.Text(nome, expand=True, size=14, weight="bold"),
+                    ft.Text(f"{int(qtd)} notas", width=80, size=13, color="grey"),
+                    ft.Text(f"R$ {saldo:,.2f}", width=160, weight="bold", color="blue", text_align="right", size=15),
                 ]),
-                padding=ft.padding.symmetric(horizontal=20, vertical=14),
+                padding=ft.padding.symmetric(horizontal=15, vertical=10),
                 border=ft.border.only(bottom=ft.border.BorderSide(1, "#EEEEEE")),
                 on_click=lambda e, n=nome: ver_detalhes(n),
                 ink=True,
-                border_radius=10
+                border_radius=8
             )
             lista_clientes.controls.append(item)
         page.update()
@@ -138,22 +138,22 @@ def main(page: ft.Page):
         df = state["df_dados"]
         notas = df[df["cliente_nome"] == nome]
         detalhes_col.controls.clear()
-        detalhes_col.controls.append(ft.Text(nome, weight="bold", size=24, color="blue"))
-        detalhes_col.controls.append(ft.Text(f"Telefone: {notas.iloc[0]['tel_limpo']}", size=18))
-        detalhes_col.controls.append(ft.Divider(height=20))
+        detalhes_col.controls.append(ft.Text(nome, weight="bold", size=18, color="blue"))
+        detalhes_col.controls.append(ft.Text(f"Telefone: {notas.iloc[0]['tel_limpo']}", size=14))
+        detalhes_col.controls.append(ft.Divider(height=10))
         for _, nota in notas.iterrows():
             detalhes_col.controls.append(
                 ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Text("Vencimento:", size=14), ft.Text(nota['venc_limpo'], color="red", weight="bold", size=16)], alignment="spaceBetween"),
-                        ft.Row([ft.Text("Valor Original:", size=14), ft.Text(f"R$ {nota['valor_num']:,.2f}", size=14)], alignment="spaceBetween"),
-                        ft.Row([ft.Text("Saldo Devedor:", weight="bold", size=16), ft.Text(f"R$ {nota['saldo_num']:,.2f}", weight="bold", size=18, color="blue")], alignment="spaceBetween"),
-                    ], spacing=8),
-                    padding=20, 
+                        ft.Row([ft.Text("Vencimento:", size=13), ft.Text(nota['venc_limpo'], color="red", weight="bold", size=14)], alignment="spaceBetween"),
+                        ft.Row([ft.Text("Valor Original:", size=13), ft.Text(f"R$ {nota['valor_num']:,.2f}", size=13)], alignment="spaceBetween"),
+                        ft.Row([ft.Text("Saldo Devedor:", weight="bold", size=14), ft.Text(f"R$ {nota['saldo_num']:,.2f}", weight="bold", size=15, color="blue")], alignment="spaceBetween"),
+                    ], spacing=6),
+                    padding=15, 
                     bgcolor="white", 
                     border=ft.border.all(1, "#E0E0E0"), 
-                    border_radius=12, 
-                    margin=ft.margin.only(bottom=10)
+                    border_radius=8, 
+                    margin=ft.margin.only(bottom=8)
                 )
             )
         detalhes_container.visible = True
@@ -170,7 +170,7 @@ def main(page: ft.Page):
 
     def processar_clientes_robo():
         if state["df_agrupado"] is None or state["df_agrupado"].empty:
-            monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=16))
+            monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=14))
             state["robo_rodando"] = False
             iniciar_robo_btn.text = "INICIAR ROBO"
             iniciar_robo_btn.disabled = False
@@ -182,8 +182,8 @@ def main(page: ft.Page):
             if not state["robo_rodando"]: break
             cliente_nome = row["cliente_nome"]
             status_item = ft.Container(
-                content=ft.Text(f"[AGUARDANDO] Cliente: {cliente_nome}", size=16),
-                padding=15, border=ft.border.all(1, "#EEEEEE"), border_radius=10, margin=ft.margin.only(bottom=8)
+                content=ft.Text(f"[AGUARDANDO] Cliente: {cliente_nome}", size=14),
+                padding=10, border=ft.border.all(1, "#EEEEEE"), border_radius=8, margin=ft.margin.only(bottom=6)
             )
             monitor_clientes_status.controls.append(status_item)
             page.update()
@@ -193,7 +193,7 @@ def main(page: ft.Page):
             status_item.bgcolor = "#F0FFF0"
             page.update()
             time.sleep(0.5)
-        monitor_clientes_status.controls.append(ft.Text("Processamento finalizado.", color="blue", weight="bold", size=22))
+        monitor_clientes_status.controls.append(ft.Text("Processamento finalizado.", color="blue", weight="bold", size=18))
         state["robo_rodando"] = False
         iniciar_robo_btn.text = "INICIAR ROBO"
         iniciar_robo_btn.disabled = False
@@ -218,65 +218,65 @@ def main(page: ft.Page):
         page.update()
 
     # --- UI ELEMENTS ---
-    status_text = ft.Text("Carregando...", size=16, color="grey")
-    total_text = ft.Text("", size=24, weight="bold", color="blue")
-    lista_clientes = ft.Column(scroll="auto", expand=True, spacing=8)
-    detalhes_col = ft.Column(scroll="auto", expand=True, spacing=10)
-    monitor_clientes_status = ft.Column(scroll="auto", expand=True, spacing=10)
+    status_text = ft.Text("Carregando...", size=14, color="grey")
+    total_text = ft.Text("", size=18, weight="bold", color="blue")
+    lista_clientes = ft.Column(scroll="auto", expand=True, spacing=4)
+    detalhes_col = ft.Column(scroll="auto", expand=True, spacing=6)
+    monitor_clientes_status = ft.Column(scroll="auto", expand=True, spacing=6)
     
     detalhes_container = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Text("DETALHES", weight="bold", size=22),
-                ft.ElevatedButton("FECHAR", on_click=lambda _: setattr(detalhes_container, "visible", False) or page.update(), bgcolor="red", color="white", height=50, width=140)
+                ft.Text("DETALHES", weight="bold", size=18),
+                ft.ElevatedButton("FECHAR", on_click=lambda _: setattr(detalhes_container, "visible", False) or page.update(), bgcolor="red", color="white", height=38, width=110)
             ], alignment="spaceBetween"),
-            ft.Divider(height=20),
+            ft.Divider(height=10),
             detalhes_col
         ]),
-        visible=False, width=550, bgcolor="#F9F9F9", padding=25, border=ft.border.all(1, "#DDDDDD"), border_radius=15
+        visible=False, width=480, bgcolor="#F9F9F9", padding=20, border=ft.border.all(1, "#DDDDDD"), border_radius=10
     )
 
-    # Botoes com dimensoes ajustadas
-    iniciar_robo_btn = ft.ElevatedButton("INICIAR ROBO", bgcolor="blue", color="white", on_click=iniciar_robo, height=55, width=250)
-    atualizar_btn = ft.ElevatedButton("ATUALIZAR", on_click=carregar_dados, height=55, width=200)
-    parar_btn = ft.ElevatedButton("PARAR", bgcolor="red", color="white", on_click=lambda e: setattr(state, "robo_rodando", False) or page.update(), height=55, width=160)
+    # Botoes com dimensoes proporcionais
+    iniciar_robo_btn = ft.ElevatedButton("INICIAR ROBO", bgcolor="blue", color="white", on_click=iniciar_robo, height=42, width=200)
+    atualizar_btn = ft.ElevatedButton("ATUALIZAR", on_click=carregar_dados, height=42, width=160)
+    parar_btn = ft.ElevatedButton("PARAR", bgcolor="red", color="white", on_click=lambda e: setattr(state, "robo_rodando", False) or page.update(), height=42, width=130)
 
     # Aba Clientes
     aba_clientes = ft.Row([
         ft.Container(
             content=ft.Column([
                 ft.Row([status_text, total_text], alignment="spaceBetween"),
-                ft.Row([atualizar_btn, iniciar_robo_btn, parar_btn], spacing=20),
-                ft.Divider(height=20),
-                ft.Container(content=lista_clientes, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=12, bgcolor="white", padding=15),
-            ], expand=True),
+                ft.Row([atualizar_btn, iniciar_robo_btn, parar_btn], spacing=15),
+                ft.Divider(height=10),
+                ft.Container(content=lista_clientes, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=10, bgcolor="white", padding=10),
+            ], expand=True, spacing=8),
             expand=True
         ),
         detalhes_container 
-    ], expand=True, visible=True, spacing=20)
+    ], expand=True, visible=True, spacing=15)
 
     # Aba Monitoramento
     aba_monitoramento = ft.Column([
-        ft.Text("MONITORAMENTO", size=28, weight="bold", color="blue"),
-        ft.Divider(height=20),
-        ft.Container(content=monitor_clientes_status, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=12, padding=25, bgcolor="white")
+        ft.Text("MONITORAMENTO", size=22, weight="bold", color="blue"),
+        ft.Divider(height=10),
+        ft.Container(content=monitor_clientes_status, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=10, padding=20, bgcolor="white")
     ], expand=True, visible=False)
 
     # Botoes de Aba
-    btn_aba_clientes = ft.ElevatedButton("CLIENTES", on_click=lambda _: mudar_aba("clientes"), bgcolor="blue", color="white", width=220, height=50)
-    btn_aba_monitor = ft.ElevatedButton("MONITORAMENTO", on_click=lambda _: mudar_aba("monitoramento"), bgcolor="#EEEEEE", color="black", width=220, height=50)
+    btn_aba_clientes = ft.ElevatedButton("CLIENTES", on_click=lambda _: mudar_aba("clientes"), bgcolor="blue", color="white", width=160, height=40)
+    btn_aba_monitor = ft.ElevatedButton("MONITORAMENTO", on_click=lambda _: mudar_aba("monitoramento"), bgcolor="#EEEEEE", color="black", width=190, height=40)
 
     page.add(
         ft.Container(
             content=ft.Column([
-                ft.Text("ROBO DE COBRANCA", size=32, weight="bold", color="blue"),
-                ft.Row([btn_aba_clientes, btn_aba_monitor], spacing=20),
-                ft.Divider(height=20),
+                ft.Text("ROBO DE COBRANCA", size=24, weight="bold", color="blue"),
+                ft.Row([btn_aba_clientes, btn_aba_monitor], spacing=15),
+                ft.Divider(height=10),
                 ft.Container(content=aba_clientes, expand=True),
                 ft.Container(content=aba_monitoramento, expand=True)
-            ], spacing=15),
+            ], spacing=8),
             expand=True,
-            padding=20
+            padding=15
         )
     )
     carregar_dados()
