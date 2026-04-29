@@ -191,35 +191,33 @@ def main(page: ft.Page):
         threading.Thread(target=processar_clientes_robo, daemon=True).start()
 
     def processar_clientes_robo():
-        if state["df_agrupado"] is None or state["df_agrupado"].empty:
-            monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=14))
+        try:
+            if state["df_agrupado"] is None or state["df_agrupado"].empty:
+                monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=14))
+                return
+            monitor_clientes_status.controls.clear()
+            page.update()
+            for idx, row in state["df_agrupado"].iterrows():
+                if not state["robo_rodando"]: break
+                cliente_nome = row["cliente_nome"]
+                status_item = ft.Container(
+                    content=ft.Text(f"[AGUARDANDO] Cliente: {cliente_nome}", size=14),
+                    padding=10, border=ft.border.all(1, "#EEEEEE"), border_radius=8, margin=ft.margin.only(bottom=6)
+                )
+                monitor_clientes_status.controls.append(status_item)
+                page.update()
+                time.sleep(1)
+                status_item.content.value = f"[ENVIADO] Cliente: {cliente_nome}"
+                status_item.content.color = "green"
+                status_item.bgcolor = "#F0FFF0"
+                page.update()
+                time.sleep(0.5)
+            monitor_clientes_status.controls.append(ft.Text("Processamento finalizado.", color="blue", weight="bold", size=18))
+        finally:
             state["robo_rodando"] = False
             iniciar_robo_btn.text = "INICIAR ROBO"
             iniciar_robo_btn.disabled = False
             page.update()
-            return
-        monitor_clientes_status.controls.clear()
-        page.update()
-        for idx, row in state["df_agrupado"].iterrows():
-            if not state["robo_rodando"]: break
-            cliente_nome = row["cliente_nome"]
-            status_item = ft.Container(
-                content=ft.Text(f"[AGUARDANDO] Cliente: {cliente_nome}", size=14),
-                padding=10, border=ft.border.all(1, "#EEEEEE"), border_radius=8, margin=ft.margin.only(bottom=6)
-            )
-            monitor_clientes_status.controls.append(status_item)
-            page.update()
-            time.sleep(1)
-            status_item.content.value = f"[ENVIADO] Cliente: {cliente_nome}"
-            status_item.content.color = "green"
-            status_item.bgcolor = "#F0FFF0"
-            page.update()
-            time.sleep(0.5)
-        monitor_clientes_status.controls.append(ft.Text("Processamento finalizado.", color="blue", weight="bold", size=18))
-        state["robo_rodando"] = False
-        iniciar_robo_btn.text = "INICIAR ROBO"
-        iniciar_robo_btn.disabled = False
-        page.update()
 
     # --- NAVEGACAO MANUAL ---
     def mudar_aba(aba):
