@@ -2,6 +2,7 @@
 # ROBO DE COBRANCA - VERSAO FINAL CORRIGIDA
 # ==========================================
 # Foco em sintaxe limpa, margens ajustadas e blocos compactos.
+# Integrado com envio de cobranca via WhatsApp Web (Selenium)
 
 import flet as ft
 import pandas as pd
@@ -10,6 +11,53 @@ from datetime import datetime, timedelta
 import time
 import threading
 
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
+# ==========================================
+# FUNCOES DO WHATSAPP
+# ==========================================
+def iniciar_driver():
+    options = webdriver.ChromeOptions()
+    options.add_argument(r"--user-data-dir=C:\\temp\\whatsapp_bot")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.get("https://web.whatsapp.com")
+    time.sleep(15)
+    return driver
+
+def formatar_numero(numero):
+    numero = str(numero).replace("(", "").replace(")", "").replace("-", "").replace(" ", "")
+    if not numero.startswith("55"):
+        numero = "55" + numero
+    return numero
+
+def montar_mensagem(nome, valor):
+    return f"Ola {nome}, identificamos um debito de R$ {valor:,.2f}. Favor regularizar."
+
+def enviar_mensagem(driver, numero, mensagem):
+    try:
+        numero = formatar_numero(numero)
+        driver.get(f"https://web.whatsapp.com/send?phone={numero}&app_absent=0")
+        time.sleep(6)
+        caixa = driver.find_element(By.XPATH, '//div[@contenteditable="true"]')
+        caixa.click()
+        caixa.send_keys(mensagem)
+        time.sleep(1)
+        caixa.send_keys(Keys.ENTER)
+        return "ENVIADO"
+    except Exception as e:
+        return f"ERRO: {str(e)[:50]}"
+
+# ==========================================
+# APLICACAO PRINCIPAL
+# ==========================================
 def main(page: ft.Page):
     page.title = "Robo de Cobranca - Versao Final"
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -23,7 +71,8 @@ def main(page: ft.Page):
         "df_dados": None, 
         "df_agrupado": None, 
         "pasta": "repositorio debitos", 
-        "robo_rodando": False
+        "robo_rodando": False,
+        "driver": None
     }
     
     # --- FUNCOES DE DADOS ---
@@ -191,29 +240,72 @@ def main(page: ft.Page):
         threading.Thread(target=processar_clientes_robo, daemon=True).start()
 
     def processar_clientes_robo():
+        driver = None
         try:
             if state["df_agrupado"] is None or state["df_agrupado"].empty:
                 monitor_clientes_status.controls.append(ft.Text("Nenhum cliente para processar.", color="red", size=14))
                 return
+
             monitor_clientes_status.controls.clear()
+            monitor_clientes_status.controls.append(
+                ft.Text("Iniciando WhatsApp Web... Aguarde o login.", size=14, color="orange", weight="bold")
+            )
             page.update()
-            for idx, row in state["df_agrupado"].iterrows():
+
+            driver = iniciar_driver()
+            state["driver"] = driver
+
+            monitor_clientes_status.controls.clear()
+            monitor_clientes_status.controls.append(
+                ft.Text("WhatsApp conectado! Iniciando envio...", size=14, color="green", weight="bold")
+            )
+            page.update()
+
+            df = state["df_dados"]
+            enviados = 0
+            erros = 0
+
+            for _, row in state["df_agrupado"].iterrows():
                 if not state["robo_rodando"]: break
                 cliente_nome = row["cliente_nome"]
+                saldo = row["saldo_num"]
+
+                notas_cliente = df[df["cliente_nome"] == cliente_nome]
+                telefone = notas_cliente.iloc[0]["tel_limpo"]
+
                 status_item = ft.Container(
-                    content=ft.Text(f"[AGUARDANDO] Cliente: {cliente_nome}", size=14),
+                    content=ft.Text(f"[ENVIANDO] {cliente_nome} - Tel: {telefone}", size=14),
                     padding=10, border=ft.border.all(1, "#EEEEEE"), border_radius=8, margin=ft.margin.only(bottom=6)
                 )
                 monitor_clientes_status.controls.append(status_item)
                 page.update()
-                time.sleep(1)
-                status_item.content.value = f"[ENVIADO] Cliente: {cliente_nome}"
-                status_item.content.color = "green"
-                status_item.bgcolor = "#F0FFF0"
+
+                mensagem = montar_mensagem(cliente_nome, saldo)
+                resultado = enviar_mensagem(driver, telefone, mensagem)
+
+                if resultado == "ENVIADO":
+                    status_item.content.value = f"[ENVIADO] {cliente_nome} - Tel: {telefone}"
+                    status_item.content.color = "green"
+                    status_item.bgcolor = "#F0FFF0"
+                    enviados += 1
+                else:
+                    status_item.content.value = f"[{resultado}] {cliente_nome} - Tel: {telefone}"
+                    status_item.content.color = "red"
+                    status_item.bgcolor = "#FFF0F0"
+                    erros += 1
                 page.update()
-                time.sleep(0.5)
-            monitor_clientes_status.controls.append(ft.Text("Processamento finalizado.", color="blue", weight="bold", size=18))
+                time.sleep(2)
+
+            monitor_clientes_status.controls.append(
+                ft.Text(f"Processamento finalizado. Enviados: {enviados} | Erros: {erros}", color="blue", weight="bold", size=16)
+            )
         finally:
+            if driver:
+                try:
+                    driver.quit()
+                except:
+                    pass
+                state["driver"] = None
             state["robo_rodando"] = False
             iniciar_robo_btn.text = "INICIAR ROBO"
             iniciar_robo_btn.disabled = False
