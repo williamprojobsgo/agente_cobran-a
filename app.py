@@ -106,6 +106,7 @@ def main(page: ft.Page):
                 
                 status_text.value = f"Arquivo: {arquivos[0]}"
                 total_text.value = f"TOTAL GERAL: R$ {df_agrup['saldo_num'].sum():,.2f}"
+                busca_field.value = ""
                 render_tabela(df_agrup)
             else:
                 status_text.value = "Erro ao ler CSV"
@@ -133,6 +134,16 @@ def main(page: ft.Page):
             )
             lista_clientes.controls.append(item)
         page.update()
+
+    def buscar_cliente(e):
+        termo = busca_field.value.strip().upper()
+        if state["df_agrupado"] is None:
+            return
+        if not termo:
+            render_tabela(state["df_agrupado"])
+            return
+        df_filtrado = state["df_agrupado"][state["df_agrupado"]["cliente_nome"].str.upper().str.contains(termo, na=False)]
+        render_tabela(df_filtrado)
 
     def ver_detalhes(nome):
         df = state["df_dados"]
@@ -224,15 +235,28 @@ def main(page: ft.Page):
     # --- UI ELEMENTS ---
     status_text = ft.Text("Carregando...", size=14, color="grey")
     total_text = ft.Text("", size=18, weight="bold", color="blue")
+    busca_field = ft.TextField(
+        hint_text="Buscar cliente...",
+        on_change=buscar_cliente,
+        prefix_icon=ft.Icons.SEARCH,
+        height=42,
+        text_size=14,
+        border_radius=8,
+        expand=True,
+    )
     lista_clientes = ft.Column(scroll="auto", expand=True, spacing=4)
     detalhes_col = ft.Column(scroll="auto", expand=True, spacing=6)
     monitor_clientes_status = ft.Column(scroll="auto", expand=True, spacing=6)
     
+    def fechar_detalhes(e):
+        detalhes_container.visible = False
+        page.update()
+
     detalhes_container = ft.Container(
         content=ft.Column([
             ft.Row([
                 ft.Text("DETALHES", weight="bold", size=18),
-                ft.ElevatedButton("FECHAR", on_click=lambda _: setattr(detalhes_container, "visible", False) or page.update(), bgcolor="red", color="white", height=38, width=110)
+                ft.ElevatedButton("FECHAR", on_click=fechar_detalhes, bgcolor="red", color="white", height=38, width=110)
             ], alignment="spaceBetween"),
             ft.Divider(height=10),
             detalhes_col
@@ -251,13 +275,14 @@ def main(page: ft.Page):
             content=ft.Column([
                 ft.Row([status_text, total_text], alignment="spaceBetween"),
                 ft.Row([atualizar_btn, iniciar_robo_btn, parar_btn], spacing=15),
+                ft.Row([busca_field], spacing=10),
                 ft.Divider(height=10),
                 ft.Container(content=lista_clientes, expand=True, border=ft.border.all(1, "#CCCCCC"), border_radius=10, bgcolor="white", padding=10),
             ], expand=True, spacing=8),
             expand=True
         ),
         detalhes_container 
-    ], expand=True, visible=True, spacing=15)
+    ], expand=True, visible=True, spacing=15, vertical_alignment=ft.CrossAxisAlignment.STRETCH)
 
     # Aba Monitoramento
     aba_monitoramento = ft.Column([
@@ -276,8 +301,8 @@ def main(page: ft.Page):
                 ft.Text("ROBO DE COBRANCA", size=24, weight="bold", color="blue"),
                 ft.Row([btn_aba_clientes, btn_aba_monitor], spacing=15),
                 ft.Divider(height=10),
-                ft.Container(content=aba_clientes, expand=True),
-                ft.Container(content=aba_monitoramento, expand=True)
+                aba_clientes,
+                aba_monitoramento,
             ], spacing=8, expand=True),
             expand=True,
             padding=15
