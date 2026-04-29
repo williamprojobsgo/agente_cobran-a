@@ -160,6 +160,10 @@ def main(page: ft.Page):
         page.update()
 
     # --- FUNCOES DO ROBO ---
+    def parar_robo(e):
+        state["robo_rodando"] = False
+        page.update()
+
     def iniciar_robo(e):
         if state["robo_rodando"]: return
         state["robo_rodando"] = True
@@ -239,7 +243,7 @@ def main(page: ft.Page):
     # Botoes com dimensoes proporcionais
     iniciar_robo_btn = ft.ElevatedButton("INICIAR ROBO", bgcolor="blue", color="white", on_click=iniciar_robo, height=42, width=200)
     atualizar_btn = ft.ElevatedButton("ATUALIZAR", on_click=carregar_dados, height=42, width=160)
-    parar_btn = ft.ElevatedButton("PARAR", bgcolor="red", color="white", on_click=lambda e: setattr(state, "robo_rodando", False) or page.update(), height=42, width=130)
+    parar_btn = ft.ElevatedButton("PARAR", bgcolor="red", color="white", on_click=parar_robo, height=42, width=130)
 
     # Aba Clientes
     aba_clientes = ft.Row([
