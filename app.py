@@ -22,7 +22,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # ==========================================
 def iniciar_driver():
     options = webdriver.ChromeOptions()
-    options.add_argument(r"--user-data-dir=C:\\temp\\whatsapp_bot")
+    options.add_argument(r"--user-data-dir=C:\temp\whatsapp_bot")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -39,7 +39,8 @@ def formatar_numero(numero):
     return numero
 
 def montar_mensagem(nome, valor):
-    return f"Ola {nome}, identificamos um debito de R$ {valor:,.2f}. Favor regularizar."
+    valor_fmt = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"Ola {nome}, identificamos um debito de R$ {valor_fmt}. Favor regularizar."
 
 def enviar_mensagem(driver, numero, mensagem):
     try:
