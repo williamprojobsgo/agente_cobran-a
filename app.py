@@ -34,10 +34,17 @@ def iniciar_driver():
 
 def formatar_numero(numero):
     numero = str(numero).replace("(", "").replace(")", "").replace("-", "").replace(" ", "").replace(".", "").replace("+", "")
-    if len(numero) <= 11:
-        numero = "55" + numero
-    elif not numero.startswith("55"):
-        numero = "55" + numero
+    # Remove country code if present to normalize
+    if len(numero) >= 12 and numero.startswith("55"):
+        numero = numero[2:]
+    # DDD(2) + 8 digits: cell phone without 9th digit
+    if len(numero) == 10 and numero[2] in "6789":
+        numero = numero[:2] + "9" + numero[2:]
+    # 8 digits only (no DDD): cell phone without 9th digit
+    elif len(numero) == 8 and numero[0] in "6789":
+        numero = "9" + numero
+    # Add country code 55
+    numero = "55" + numero
     return numero
 
 def montar_mensagem(nome, valor):
@@ -76,9 +83,60 @@ def main(page: ft.Page):
         "pasta": "repositorio debitos", 
         "robo_rodando": False,
         "driver": None,
-        "selecionados": set()
+        "selecionados": set(),
+        "telefones_excel": {}
     }
     
+    # --- CARREGAR TELEFONES DO EXCEL ---
+    def carregar_telefones_excel():
+        arquivo_tel = None
+        for nome_arq in os.listdir("."):
+            if nome_arq.lower().endswith(".xlsx") and "cliente" in nome_arq.lower():
+                arquivo_tel = nome_arq
+                break
+        if not arquivo_tel:
+            for nome_arq in os.listdir("."):
+                if nome_arq.lower().endswith(".xlsx"):
+                    arquivo_tel = nome_arq
+                    break
+        if not arquivo_tel:
+            return
+        try:
+            df_tel = pd.read_excel(arquivo_tel)
+            col_nome = None
+            col_fone = None
+            col_contato = None
+            for c in df_tel.columns:
+                cl = str(c).lower()
+                if "fantasia" in cl or "nome" in cl or "cliente" in cl:
+                    col_nome = c
+                if "fone" in cl or "telefone" in cl or "celular" in cl:
+                    col_fone = c
+                if "contato" in cl:
+                    col_contato = c
+            if col_nome and col_fone:
+                for _, row in df_tel.iterrows():
+                    nome = str(row[col_nome]).strip().upper()
+                    fone = str(row[col_fone]).strip()
+                    if nome and fone and fone != "nan":
+                        state["telefones_excel"][nome] = fone
+                    elif nome and col_contato:
+                        contato = str(row[col_contato]).strip()
+                        nums = "".join(c for c in contato if c.isdigit())
+                        if len(nums) >= 10:
+                            state["telefones_excel"][nome] = nums
+        except Exception as ex:
+            pass
+
+    def buscar_telefone_cliente(cliente_nome):
+        nome_upper = cliente_nome.strip().upper()
+        if nome_upper in state["telefones_excel"]:
+            return state["telefones_excel"][nome_upper]
+        for nome_excel, fone in state["telefones_excel"].items():
+            if nome_upper in nome_excel or nome_excel in nome_upper:
+                return fone
+        return None
+
     # --- FUNCOES DE DADOS ---
     def converter_data_agressivo(val):
         if pd.isna(val) or not val or str(val).strip() == "":
@@ -211,10 +269,13 @@ def main(page: ft.Page):
             saldo = row["saldo_num"]
             qtd = row["qtd"]
             cb = ft.Checkbox(value=nome in state["selecionados"], on_change=lambda e, n=nome: on_checkbox_change(e, n))
+            tel_excel = buscar_telefone_cliente(nome)
+            tel_display = tel_excel if tel_excel else ""
             item = ft.Container(
                 content=ft.Row([
                     cb,
                     ft.Text(nome, expand=True, size=14, weight="bold"),
+                    ft.Text(tel_display, width=140, size=12, color="grey"),
                     ft.Text(f"{int(qtd)} notas", width=80, size=13, color="grey"),
                     ft.Text(f"R$ {saldo:,.2f}", width=160, weight="bold", color="blue", text_align="right", size=15),
                 ]),
@@ -310,7 +371,8 @@ def main(page: ft.Page):
                 saldo = row["saldo_num"]
 
                 notas_cliente = df[df["cliente_nome"] == cliente_nome]
-                telefone = notas_cliente.iloc[0]["tel_limpo"]
+                telefone_excel = buscar_telefone_cliente(cliente_nome)
+                telefone = telefone_excel if telefone_excel else notas_cliente.iloc[0]["tel_limpo"]
 
                 status_item = ft.Container(
                     content=ft.Text(f"[ENVIANDO] {cliente_nome} - Tel: {telefone}", size=14),
@@ -448,6 +510,7 @@ def main(page: ft.Page):
             padding=15
         )
     )
+    carregar_telefones_excel()
     carregar_dados()
 
 if __name__ == "__main__":
